@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>SmartLMS - Admin Dashboard</title>
 <style>
 :root{
   --bg:#f5f7fa;--card:#fff;--text:#2d3748;--muted:#718096;--border:#e2e8f0;
   --gradA:#667eea;--gradB:#764ba2;--danger:#f56565;--ok:#10b981;--warn:#f59e0b;
 }
-*{box-sizing:border-box}
+*{box-sizing:border-box} html{-webkit-text-size-adjust:100%} img{max-width:100%;height:auto}
 body{font-family:Arial,sans-serif;background:var(--bg);margin:0;padding:0;display:grid;grid-template-columns:260px 1fr;min-height:100vh;color:var(--text)}
 /* Sidebar */
 .aside{background:linear-gradient(180deg,var(--gradA),var(--gradB));color:#fff;padding:16px;display:flex;flex-direction:column;gap:14px;position:sticky;top:0;height:100vh}
@@ -24,7 +24,7 @@ body{font-family:Arial,sans-serif;background:var(--bg);margin:0;padding:0;displa
 .footer-cta button{width:100%;padding:10px 12px;border-radius:8px;border:none;background:#ffffff22;color:#fff;font-weight:700;cursor:pointer}
 .footer-cta button:hover{background:#ffffff33}
 /* Header */
-header{background:linear-gradient(135deg,var(--gradA) 0%,var(--gradB) 100%);color:white;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+header{background:linear-gradient(135deg,var(--gradA) 0%,var(--gradB) 100%);color:white;padding:14px 18px;padding-top:calc(14px + env(safe-area-inset-top));padding-right:calc(18px + env(safe-area-inset-right));padding-left:calc(18px + env(safe-area-inset-left));display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5;box-shadow:0 2px 8px rgba(0,0,0,.1)}
 .header-title{font-size:18px;font-weight:800}
 .actions{display:flex;gap:10px;align-items:center}
 #notifBell{cursor:pointer;position:relative;user-select:none;font-size:20px;transition:transform .2s}
@@ -78,7 +78,7 @@ label.inline{display:inline-flex;gap:6px;align-items:center;margin-right:12px}
 .tab-nav button{width:auto;background:transparent;color:var(--muted);border:none;border-bottom:3px solid transparent;margin:0 0 -2px 0;padding:10px 20px;font-weight:500}
 .tab-nav button.active{color:var(--gradA);border-bottom-color:var(--gradA)}
 .tab-nav button:hover{color:var(--gradA);background:#f9fafb}
-.hidden{display:none!important}
+.hidden{display:none!important}.grid{display:grid}
 .progress-bar{background:#e2e8f0;height:8px;border-radius:4px;overflow:hidden;margin:8px 0}
 .progress-fill{background:linear-gradient(90deg,var(--gradA),var(--gradB));height:100%;transition:width .3s}
 /* Responsive */
@@ -93,6 +93,7 @@ header .menu{display:none;background:#ffffff22;border:0;color:#fff;border-radius
   main{padding:14px}
   .toolbar{gap:6px}
   .tab-nav button{padding:8px 12px}
+  input,textarea,button,select{font-size:16px}
 }
 </style>
 </head>
