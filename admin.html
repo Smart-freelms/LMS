@@ -1211,5 +1211,103 @@ async function showMaintenanceBanner(){
   }
 }
 </script>
+<!-- === Supabase-Sync Module (SmartLMS Admin Dashboard) === -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const banner=document.createElement("div");
+banner.id="syncBanner";
+banner.textContent="🔄 Admin Sync: Starting…";
+banner.style.cssText="position:fixed;top:0;left:50%;transform:translateX(-50%);background:#f3faff;color:#111;padding:6px 16px;border:1px solid #a7d3ff;border-radius:0 0 8px 8px;font-size:14px;font-weight:600;z-index:9999;";
+document.body.prepend(banner);
+function setBanner(t){banner.textContent=`🔄 Admin Sync: ${t}`;}
+
+const SUPABASE_URL="https://eljbrcqgwgrzzjulsjka.supabase.co";
+const SUPABASE_ANON_KEY="YOUR_ANON_KEY_HERE";
+const supa=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+async function getLocalUsers(){return await Storage.getUsers();}
+async function saveLocalUsers(u){return await Storage.saveUsers(u);}
+async function getMaint(){return await getMaintenance();}
+async function setMaint(m){return await setMaintenance(m);}
+
+/* ---------- Push User Changes ---------- */
+async function syncUsersUp(){
+ if(!navigator.onLine)return;
+ const users=await getLocalUsers();
+ for(const u of users){
+   if(!u.email)continue;
+   await supa.from("users").upsert({
+     email:u.email,full_name:u.fullName,password:u.password,role:u.role,
+     flagged:u.flagged,lockouts:u.lockouts,failed_attempts:u.failedAttempts,
+     locked_until:u.lockedUntil?new Date(u.lockedUntil).toISOString():null,
+     active:u.active,updated_at:new Date(u.updatedAt||Date.now()).toISOString()
+   },{onConflict:"email"});
+ }
+ setBanner("Users Synced to Cloud");
+}
+
+/* ---------- Pull User Changes ---------- */
+async function syncUsersDown(){
+ if(!navigator.onLine)return;
+ const {data}=await supa.from("users").select("*");
+ if(Array.isArray(data)){await saveLocalUsers(data.map(r=>({
+   fullName:r.full_name,email:r.email,password:r.password,role:r.role,
+   flagged:r.flagged,lockouts:r.lockouts,failedAttempts:r.failed_attempts,
+   lockedUntil:r.locked_until?new Date(r.locked_until).getTime():null,
+   active:r.active,updatedAt:r.updated_at?new Date(r.updated_at).getTime():Date.now()
+ })));} 
+ setBanner("Users Pulled from Cloud");
+}
+
+/* ---------- Maintenance Publish ---------- */
+async function publishMaintenance(){
+ if(!navigator.onLine){alert("Offline – Cannot publish maintenance.");return;}
+ const m=await getMaint();
+ const {data}=await supa.from("maintenance").select("id").limit(1);
+ if(data&&data.length){
+   await supa.from("maintenance").update({
+     active:m.enabled,message:m.message||"",end_time:m.manualUntil?new Date(m.manualUntil).toISOString():null
+   }).eq("id",data[0].id);
+ }else{
+   await supa.from("maintenance").insert({
+     active:m.enabled,message:m.message||"",end_time:m.manualUntil?new Date(m.manualUntil).toISOString():null
+   });
+ }
+ setBanner("Maintenance Published to Cloud");
+}
+
+/* ---------- Auto Sync Loop ---------- */
+async function fullSyncAdmin(){
+ if(!navigator.onLine){setBanner("Offline – Local Only");return;}
+ setBanner("Online – Syncing…");
+ await syncUsersUp();await syncUsersDown();await publishMaintenance();
+ setBanner("Online – Synced");
+}
+window.addEventListener("online",fullSyncAdmin);
+window.addEventListener("offline",()=>setBanner("Offline – Local Only"));
+setInterval(fullSyncAdmin,60000);
+(async()=>{await fullSyncAdmin();})();
+
+/* ---------- Instant Triggers for Admin Actions ---------- */
+async function triggerInstantSync(){
+ if(navigator.onLine){await syncUsersUp();await publishMaintenance();setBanner("Instant Sync Done");}
+}
+
+/* Example: call triggerInstantSync() after any admin change */
+if(window.AdminActions){
+ const _orig=window.AdminActions;
+ window.AdminActions=function(a){_orig(a);triggerInstantSync();};
+}
+
+/* ---------- Realtime Subscriptions ---------- */
+supa.channel("users")
+ .on("postgres_changes",{event:"*",schema:"public",table:"users"},async()=>{await syncUsersDown();setBanner("Realtime User Refresh");})
+ .subscribe();
+
+supa.channel("maintenance")
+ .on("postgres_changes",{event:"*",schema:"public",table:"maintenance"},async()=>{await fetchMaintenance?.();setBanner("Realtime Maintenance Refresh");})
+ .subscribe();
+</script>
+<!-- === End Admin Sync Module === -->
 </body>
 </html>
