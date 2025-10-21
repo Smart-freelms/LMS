@@ -114,6 +114,30 @@
         r.onerror = ()=> resolve({});
       });
     }
+
+    async function setMaintenance(m){
+      // Persist maintenance state and broadcast change
+      if (!supportsIndexedDB) {
+        try { localStorage.setItem('maintenance', JSON.stringify(m||{})); } catch(_) {}
+      } else {
+        try {
+          const db = await openDB();
+          await new Promise((resolve) => {
+            const tx = db.transaction('meta', 'readwrite');
+            tx.objectStore('meta').put({ key: 'maintenance', value: m||{} });
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => resolve();
+          });
+        } catch(_) {}
+      }
+      // Best-effort broadcast to other tabs and listeners
+      try {
+        const bc = new BroadcastChannel('smartlms_maint');
+        bc.postMessage({ type: (m && m.enabled) ? 'maintenance_active' : 'maintenance_disabled', payload: { updatedAt: Date.now() } });
+        bc.close();
+      } catch(_) {}
+      try { localStorage.setItem('smartlms_maint_broadcast', JSON.stringify({ type: (m && m.enabled) ? 'maintenance_active' : 'maintenance_disabled', payload: { updatedAt: Date.now() } })); } catch(_) {}
+    }
     function isActiveMaintenance(m){
       const now = Date.now();
       if(m.enabled && m.manualUntil && now < m.manualUntil) return true;
@@ -712,5 +736,129 @@
       showSection('landing');
     })();
   </script>
+
+  <!-- === Supabase-Sync Module (SmartLMS Landing Page) === -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+  /* ---------- Banner ---------- */
+  const banner=document.createElement("div");
+  banner.id="syncBanner";
+  banner.textContent="🔄 Sync Status: Initializing…";
+  banner.style.cssText="position:fixed;top:0;left:50%;transform:translateX(-50%);background:#eef4ff;color:#222;padding:6px 16px;border:1px solid #ccd3ff;border-radius:0 0 8px 8px;font-size:14px;font-weight:600;z-index:9999;";
+  document.body.prepend(banner);
+  function updateBanner(t){banner.textContent=`🔄 Sync Status: ${t}`;}
+
+  /* ---------- Supabase Init ---------- */
+  const SUPABASE_URL="https://eljbrcqgwgrzzjulsjka.supabase.co";
+  const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVsamJyY3Fnd2dyenpqdWxzamthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA5ODE2OTEsImV4cCI6MjA3NjU1NzY5MX0.uG2tzszMxUtsookPLon1GFXb3rkrgHf0bdaGyi6mL0A";
+  const supa=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+  /* ---------- Helpers ---------- */
+  function delay(ms){return new Promise(r=>setTimeout(r,ms));}
+  async function getLocalUsers(){return await getUsers();}
+  async function putLocalUser(u){return await idbPutUser(u);} 
+  async function getMaint(){return await getMaintenance();}
+  async function setMaint(m){return await setMaintenance(m);} 
+  async function getCurrent(){return await getCurrentUser();}
+  async function clearCurrent(){return await clearCurrentUser();}
+
+  /* ---------- Sync Users To Cloud ---------- */
+  async function syncUsersToCloud(){
+   if(!navigator.onLine){updateBanner("Offline – Local Only");return;}
+   updateBanner("Online – Uploading Users…");
+   try{
+     const local=await getLocalUsers();
+     const {data:remote}=await supa.from("users").select("email,updated_at");
+     const map=new Map((remote||[]).map(r=>[r.email,r]));
+     for(const u of local){
+       if(!u.email)continue;
+       const r=map.get(u.email);
+       const lt=u.updatedAt||0;
+       const rt=r?.updated_at?new Date(r.updated_at).getTime():0;
+       if(!r||lt>rt){
+         await supa.from("users").upsert({
+           full_name:u.fullName,email:u.email,password:u.password,role:u.role,
+           active:u.active,flagged:u.flagged,lockouts:u.lockouts,
+           failed_attempts:u.failedAttempts,locked_until:u.lockedUntil?new Date(u.lockedUntil).toISOString():null,
+           reset_request:u.resetRequest,notifications:u.notifications||[],
+           updated_at:new Date(lt||Date.now()).toISOString()
+         },{onConflict:"email"});
+       }
+     }
+     updateBanner("Online – Users Synced");
+   }catch(e){console.error(e);updateBanner("User Sync Error");}
+  }
+
+  /* ---------- Sync From Cloud ---------- */
+  async function syncUsersFromCloud(){
+   if(!navigator.onLine)return;
+   try{
+     const {data}=await supa.from("users").select("*");
+     const local=await getLocalUsers();
+     const map=new Map(local.map(u=>[u.email,u]));
+     for(const r of data||[]){
+       const l=map.get(r.email);
+       const rt=r.updated_at?new Date(r.updated_at).getTime():0;
+       const lt=l?.updatedAt||0;
+       if(!l||rt>lt){
+         await putLocalUser({...l,
+           fullName:r.full_name,email:r.email,password:r.password,role:r.role,
+           active:r.active,flagged:r.flagged,lockouts:r.lockouts,
+           failedAttempts:r.failed_attempts,lockedUntil:r.locked_until?new Date(r.locked_until).getTime():null,
+           resetRequest:r.reset_request,notifications:r.notifications||[],
+           updatedAt:rt});
+       }
+     }
+     updateBanner("Online – Users Updated");
+   }catch(e){console.error(e);}
+  }
+
+  /* ---------- Maintenance Enforcement ---------- */
+  async function enforceMaintenance(){
+   const m=await getMaint();const u=await getCurrent();
+   if(m?.enabled){
+     const admin=u&&u.role==="admin";
+     if(u&&!admin){await clearCurrent();alert("System under maintenance. You’ve been logged out.");location.href="index.html";return;}
+     ["signupForm","loginForm","resetForm"].forEach(id=>{const f=document.getElementById(id);if(f)for(const e of f.elements)e.disabled=!admin;});
+   }else{["signupForm","loginForm","resetForm"].forEach(id=>{const f=document.getElementById(id);if(f)for(const e of f.elements)e.disabled=false;});}
+  }
+
+  /* ---------- Fetch Maintenance From Cloud ---------- */
+  async function fetchMaintenance(){
+   if(!navigator.onLine)return;
+   const {data}=await supa.from("maintenance").select("*").limit(1);
+   if(data&&data.length){
+     const r=data[0];
+     await setMaint({enabled:r.active,message:r.message,manualUntil:r.end_time?new Date(r.end_time).getTime():null,updatedAt:r.updated_at?new Date(r.updated_at).getTime():Date.now()});
+     await enforceMaintenance();
+   }
+  }
+
+  /* ---------- Auto Sync Cycle ---------- */
+  async function fullSync(){
+   if(!navigator.onLine){updateBanner("Offline – Local Only");return;}
+   updateBanner("Online – Syncing…");
+   await syncUsersToCloud();await delay(1000);await syncUsersFromCloud();await fetchMaintenance();updateBanner("Online – Synced");
+  }
+  window.addEventListener("online",fullSync);
+  window.addEventListener("offline",()=>updateBanner("Offline – Local Only"));
+  setInterval(fullSync,60*1000);
+  (async()=>{await fullSync();})();
+
+  /* ---------- Realtime Subscriptions ---------- */
+  supa.channel("users").on("postgres_changes",{event:"*",schema:"public",table:"users"},async(p)=>{
+   if(!p.new?.email)return;
+   const cur=await getCurrent();
+   if(cur&&p.new.email===cur.email){await putLocalUser({...p.new,updatedAt:new Date(p.new.updated_at).getTime()});updateBanner("Realtime User Update");}
+  }).subscribe();
+
+  supa.channel("maintenance").on("postgres_changes",{event:"*",schema:"public",table:"maintenance"},async(p)=>{
+   if(!p.new)return;
+   await setMaint({enabled:p.new.active,message:p.new.message,manualUntil:p.new.end_time?new Date(p.new.end_time).getTime():null,updatedAt:p.new.updated_at?new Date(p.new.updated_at).getTime():Date.now()});
+   await enforceMaintenance();
+   updateBanner("Realtime Maintenance Update");
+  }).subscribe();
+  </script>
+  <!-- === End Landing Sync Module === -->
 </body>
 </html>
