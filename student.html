@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8" />
 <title>SmartLMS — Student</title>
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <style>
-  :root{--purple:#5b2ea6;--muted:#f3f3f6;--card:#fff;--text:#222}
+  :root{--purple:#5b2ea6;--muted:#f3f3f6;--card:#fff;--text:#222} html{-webkit-text-size-adjust:100%} img{max-width:100%;height:auto}
   body{font-family:Inter,Arial,Helvetica,sans-serif;margin:0;background:#f4f6f8;color:var(--text)}
-  header{background:#fff;border-bottom:1px solid #e6e9ee;min-height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 12px}
+  header{background:#fff;border-bottom:1px solid #e6e9ee;min-height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;padding-top:calc(0px + env(safe-area-inset-top));padding-right:calc(12px + env(safe-area-inset-right));padding-left:calc(12px + env(safe-area-inset-left))}
   .container{max-width:980px;margin:0 auto;padding:12px}
   .card{background:#fff;border:1px solid #eaeff5;border-radius:8px;box-shadow:0 1px 0 rgba(0,0,0,0.02);padding:14px}
   .small{font-size:13px;color:#666}
@@ -17,6 +17,7 @@
   .q-attach-card{border:1px solid #eee;border-radius:6px;padding:8px;display:flex;gap:8px;align-items:center;background:#fff}
   .grid{display:grid;gap:12px}
   @media(max-width: 760px){ .container{padding:10px} }
+  @media(max-width: 480px){ input,textarea,button,select{font-size:16px} }
   .empty{border:1px dashed #e6e9ee;background:#fff;padding:14px;border-radius:8px;color:#666;text-align:center}
 </style>
 </head>

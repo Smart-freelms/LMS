@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8" />
 <title>SmartLMS — Teacher Dashboard (Enhanced Grading)</title>
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <style>
-  :root{--purple:#5b2ea6;--muted:#f3f3f6;--card:#fff;--text:#222}
+  :root{--purple:#5b2ea6;--muted:#f3f3f6;--card:#fff;--text:#222} html{-webkit-text-size-adjust:100%} img{max-width:100%;height:auto}
   body{font-family:Inter,Arial,Helvetica,sans-serif;margin:0;background:#f4f6f8;color:var(--text)}
   .app{display:flex;min-height:100vh;gap:20px}
   /* Sidebar */
@@ -16,12 +16,12 @@
   .nav-title{font-size:12px;color:#666;margin-top:8px;margin-bottom:6px}
   /* Main */
   .main{flex:1;display:flex;flex-direction:column}
-  header{min-height:60px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid #e6e9ee}
+  header{min-height:60px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 12px;padding-top:calc(0px + env(safe-area-inset-top));padding-right:calc(12px + env(safe-area-inset-right));padding-left:calc(12px + env(safe-area-inset-left));border-bottom:1px solid #e6e9ee}
   header h1{font-size:18px;margin:0;display:flex;align-items:center;gap:8px}
   .menu-btn{display:none;background:#f3f3f6;border:1px solid #e6e9ee;border-radius:6px;padding:8px 10px}
   .notif{position:relative;cursor:pointer}
   .unread-badge{position:absolute;top:-6px;right:-6px;background:#e02424;color:#fff;border-radius:999px;padding:3px 7px;font-size:12px}
-  .notif-list{position:absolute;right:20px;top:60px;width:360px;background:#fff;border:1px solid #e6e9ee;border-radius:6px;box-shadow:0 6px 30px rgba(0,0,0,0.06);max-height:360px;overflow:auto;padding:8px;display:none;z-index:50}
+  .notif-list{position:absolute;right:20px;top:60px;width:360px;max-width:calc(100vw - 24px);background:#fff;border:1px solid #e6e9ee;border-radius:6px;box-shadow:0 6px 30px rgba(0,0,0,0.06);max-height:360px;overflow:auto;padding:8px;display:none;z-index:50}
   .notif-item{padding:8px;border-bottom:1px solid #f0f0f0;font-size:13px}
   /* content layout */
   .content{flex:1;padding:12px;overflow:auto}
@@ -31,7 +31,7 @@
   .small{font-size:13px;color:#666}
   .button{background:var(--purple);color:#fff;padding:8px 12px;border-radius:6px;border:none;cursor:pointer}
   .muted{color:#666}
-  table{width:100%;border-collapse:collapse}
+  table{width:100%;border-collapse:collapse}.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}.table-wrap table{min-width:600px}
   thead th{background:#fafbfc;text-align:left;padding:8px;border-bottom:1px solid #eee;font-weight:600}
   tbody td{padding:8px;border-bottom:1px solid #f3f5f8}
   .action-btn{padding:6px 8px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer}
@@ -51,7 +51,7 @@
   .badge{display:inline-block;background:#eef2ff;color:var(--purple);padding:2px 8px;border-radius:999px;font-size:12px}
   .empty{border:1px dashed #e6e9ee;background:#fff;padding:14px;border-radius:8px;color:#666;text-align:center}
   footer{height:40px;background:#fff;border-top:1px solid #e6e9ee;display:flex;align-items:center;justify-content:center;font-size:13px}
-  .small-note{font-size:12px;color:#444}
+  .small-note{font-size:12px;color:#444}.hidden{display:none!important}.tab-nav{display:flex;gap:5px;margin:8px 0;border-bottom:1px solid #eee}.tab-nav button{background:transparent;border:none;border-bottom:2px solid transparent;margin:0 0 -1px 0;padding:8px 12px}.tab-nav button.active{border-bottom-color:var(--purple);color:var(--purple)}@media(max-width:480px){.input,textarea,select,button{font-size:16px}}
   .grid-questions{display:grid;gap:8px}
   .controls-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   @media(max-width:980px){
@@ -59,6 +59,7 @@
     .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);transition:transform .2s ease;z-index:200;display:flex;width:80vw;max-width:320px}
     .sidebar.open{transform:translateX(0)}
     .cols-3{grid-template-columns:1fr}
+    .modal{width:92vw;max-width:92vw}
   }
 </style>
 </head>
@@ -164,10 +165,12 @@
                 <div><button class="button" id="createAssignmentBtn">New Assignment</button></div>
               </div>
               <hr />
-              <table>
-                <thead><tr><th>Title</th><th>Publish</th><th>Unpublish (Deadline)</th><th>Group?</th><th>Actions</th></tr></thead>
-                <tbody id="assignmentsTable"></tbody>
-              </table>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Title</th><th>Publish</th><th>Unpublish (Deadline)</th><th>Group?</th><th>Actions</th></tr></thead>
+                  <tbody id="assignmentsTable"></tbody>
+                </table>
+              </div>
             </div>
           </div>
 
@@ -217,10 +220,12 @@
                 <div><button class="button" id="refreshSubmissions">Refresh</button></div>
               </div>
               <hr />
-              <table>
-                <thead><tr><th>User</th><th>Assignment</th><th>Submitted</th><th>Status</th><th>Score</th><th>Actions</th></tr></thead>
-                <tbody id="submissionsTable"></tbody>
-              </table>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>User</th><th>Assignment</th><th>Submitted</th><th>Status</th><th>Score</th><th>Actions</th></tr></thead>
+                  <tbody id="submissionsTable"></tbody>
+                </table>
+              </div>
             </div>
           </div>
 
