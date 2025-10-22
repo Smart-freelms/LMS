@@ -349,7 +349,7 @@
       <div class="grid" style="grid-template-columns:1fr 1fr">
         <div>
           <label class="label">Current password</label>
-          <input id="pfCurPass" type="text" class="input" />
+          <input id="pfCurPass" type="password" class="input" />
         </div>
         <div></div>
         <div>
@@ -507,7 +507,7 @@ async function requireTeacher(cb){
   if(user.active === false){ alert('Your account has been deactivated'); window.location.href='index.html'; return; }
   currentTeacher = user; currentEmail = (user.email||'').toLowerCase();
   document.getElementById('teacherName').innerText = user.fullName || 'Teacher';
-  document.getElementById('teacherNameInput').value = user.fullName || '';
+  const teacherNameInputEl = document.getElementById('teacherNameInput'); if (teacherNameInputEl) { teacherNameInputEl.value = user.fullName || ''; }
   if(cb) cb(user);
 }
 

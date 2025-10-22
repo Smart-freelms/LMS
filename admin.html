@@ -121,7 +121,7 @@ header .menu{display:none;background:#ffffff22;border:0;color:#fff;border-radius
       </div>
       <div class="actions">
         <button id="logoutBtn" type="button" title="Logout" class="secondary">Logout</button>
-        <div id="notifBell" aria-expanded="false">🔔 <span id="unreadCount"></span></div>
+        <div id="notifBell" aria-expanded="false">🔔 <span id="unreadCount" style="display:none"></span></div>
       </div>
       <div id="notifList" role="listbox" aria-label="Notifications"></div>
     </header>
@@ -438,7 +438,8 @@ function pushNotification(user, message){
 function renderNotifications(user){
   const list = document.getElementById('notifList');
   const count = (user.notifications||[]).filter(n=>!n.read).length;
-  document.getElementById('unreadCount').innerText = count? String(count):'';
+  const ub = document.getElementById('unreadCount');
+  if (count > 0) { ub.innerText = String(count); ub.style.display = 'inline-block'; } else { ub.innerText = ''; ub.style.display = 'none'; }
   list.innerHTML = '';
   const items = (user.notifications||[]).slice().reverse();
   if(!items.length){
@@ -808,7 +809,7 @@ function ensureModal(){
           <option value="admin">Admin</option>
         </select>
         <input id="mPhone" placeholder="Phone (optional)">
-        <input id="mPassword" placeholder="Password (set/reset)">
+        <input id="mPassword" type="password" placeholder="Password (set/reset)">
       </div>
       <div class="action-grid" style="margin-top:10px;grid-template-columns:repeat(3,1fr)">
         <button id="modalSave">Save</button>
