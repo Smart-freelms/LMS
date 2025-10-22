@@ -740,13 +740,8 @@
   <!-- === Supabase-Sync Module (SmartLMS Landing Page) === -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-  /* ---------- Banner ---------- */
-  const banner=document.createElement("div");
-  banner.id="syncBanner";
-  banner.textContent="🔄 Sync Status: Initializing…";
-  banner.style.cssText="position:fixed;top:0;left:50%;transform:translateX(-50%);background:#eef4ff;color:#222;padding:6px 16px;border:1px solid #ccd3ff;border-radius:0 0 8px 8px;font-size:14px;font-weight:600;z-index:9999;";
-  document.body.prepend(banner);
-  function updateBanner(t){banner.textContent=`🔄 Sync Status: ${t}`;}
+  /* ---------- Banner (disabled on landing; admin-only) ---------- */
+  function updateBanner(t){ /* no-op on landing page */ }
 
   /* ---------- Supabase Init ---------- */
   const SUPABASE_URL="https://eljbrcqgwgrzzjulsjka.supabase.co";
